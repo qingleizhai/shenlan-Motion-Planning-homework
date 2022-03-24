@@ -199,7 +199,7 @@ double AstarPathFinder::getHeu(GridNodePtr node1, GridNodePtr node2)
 
     /* Euclidean */
 
-    return (node1->coord - node2->coord).norm();
+    //return (node1->coord - node2->coord).norm();
 
     /* Diagonal */
 
@@ -377,16 +377,18 @@ vector<Vector3d> AstarPathFinder::getPath()
     please write your code below
     *      
     */
-   auto currentPtr = terminatePtr;
-   while (currentPtr) {
-       gridPath.push_back(currentPtr);
-       currentPtr = currentPtr->cameFrom;
-   }
+    auto currentPtr = terminatePtr;
+    while (currentPtr) {
+        gridPath.push_back(currentPtr);
+        currentPtr = currentPtr->cameFrom;
+    }
 
     for (auto ptr: gridPath)
         path.push_back(ptr->coord);
         
     reverse(path.begin(),path.end());
+
+    ROS_WARN("path_nodes size : %d", path.size());
 
     return path;
 }

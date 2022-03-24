@@ -218,15 +218,15 @@ void visGridPath( vector<Vector3d> nodes, bool is_use_jps )
 
     if(is_use_jps){
         node_vis.color.a = 1.0;
-        node_vis.color.r = 1.0;
-        node_vis.color.g = 0.0;
+        node_vis.color.r = 0.0;
+        node_vis.color.g = 1.0;
         node_vis.color.b = 0.0;
     }
     else{
         node_vis.color.a = 1.0;
         node_vis.color.r = 0.0;
-        node_vis.color.g = 1.0;
-        node_vis.color.b = 0.0;
+        node_vis.color.g = 0.0;
+        node_vis.color.b = 1.0;
     }
 
 
@@ -262,10 +262,10 @@ void visVisitedNode( vector<Vector3d> nodes )
     node_vis.pose.orientation.y = 0.0;
     node_vis.pose.orientation.z = 0.0;
     node_vis.pose.orientation.w = 1.0;
-    node_vis.color.a = 0.5;
+    node_vis.color.a = 1.0;
     node_vis.color.r = 0.0;
-    node_vis.color.g = 0.0;
-    node_vis.color.b = 1.0;
+    node_vis.color.g = 1.0;
+    node_vis.color.b = 0.0;
 
     node_vis.scale.x = _resolution;
     node_vis.scale.y = _resolution;

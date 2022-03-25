@@ -157,18 +157,15 @@ inline void AstarPathFinder::AstarGetSucc(GridNodePtr currentPtr, vector<GridNod
                     current_index(2) + dz
                 );
 
-                if (isOccupied(neighbor_index) || 
-                    GridNodeMap[neighbor_index(0)][neighbor_index(1)][neighbor_index(2)]->id == -1) { // can't used or is closed
-                    break;
-                }
-
                 if (
                     (neighbor_index(0) >= 0 && neighbor_index(0) < GLX_SIZE) && 
                     (neighbor_index(1) >= 0 && neighbor_index(1) < GLY_SIZE) && 
-                    (neighbor_index(2) >= 0 && neighbor_index(2) < GLZ_SIZE)
+                    (neighbor_index(2) >= 0 && neighbor_index(2) < GLZ_SIZE) && 
+                    (!isOccupied(neighbor_index)) && 
+                    (GridNodeMap[neighbor_index(0)][neighbor_index(1)][neighbor_index(2)]->id != -1)
                 ) {
                     auto& neighborPtr = GridNodeMap[neighbor_index(0)][neighbor_index(1)][neighbor_index(2)];
-                    neighborPtr->dir = Eigen::Vector3i(dx, dy,dz);
+                    neighborPtr->dir = Eigen::Vector3i(dx, dy, dz);
                     neighborPtr->cameFrom = currentPtr;
                     neighborPtrSets.push_back(neighborPtr);
                     edgeCostSets.push_back((neighborPtr->coord - currentPtr->coord).norm());
@@ -275,8 +272,7 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
             return;
         }
         //get the succetion
-        AstarGetSucc(currentPtr, neighborPtrSets, edgeCostSets);  //STEP 4: finish AstarPathFinder::AstarGetSucc yourself     
-
+        AstarGetSucc(currentPtr, neighborPtrSets, edgeCostSets);  //STEP 4: finish AstarPathFinder::AstarGetSucc yourself         
         /*
         *
         *
@@ -357,8 +353,9 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
                 */
                 continue;
             }
-        }      
+        }    
     }
+    
     //if search fails
     ros::Time time_2 = ros::Time::now();
     if((time_2 - time_1).toSec() > 0.1)

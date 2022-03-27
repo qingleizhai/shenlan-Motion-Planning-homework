@@ -75,8 +75,10 @@ vector<Vector3d> AstarPathFinder::getVisitedNodes()
         for(int j = 0; j < GLY_SIZE; j++)
             for(int k = 0; k < GLZ_SIZE; k++){   
                 //if(GridNodeMap[i][j][k]->id != 0) // visualize all nodes in open and close list
-                if(GridNodeMap[i][j][k]->id == -1)  // visualize nodes in close list only
+                if(GridNodeMap[i][j][k]->id == -1){ // visualize nodes in close list only
                     visited_nodes.push_back(GridNodeMap[i][j][k]->coord);
+                }  
+                   
             }
 
     ROS_WARN("visited_nodes size : %d", visited_nodes.size());
@@ -166,7 +168,6 @@ inline void AstarPathFinder::AstarGetSucc(GridNodePtr currentPtr, vector<GridNod
                 ) {
                     auto& neighborPtr = GridNodeMap[neighbor_index(0)][neighbor_index(1)][neighbor_index(2)];
                     neighborPtr->dir = Eigen::Vector3i(dx, dy, dz);
-                    neighborPtr->cameFrom = currentPtr;
                     neighborPtrSets.push_back(neighborPtr);
                     edgeCostSets.push_back((neighborPtr->coord - currentPtr->coord).norm());
                 }
@@ -192,7 +193,7 @@ double AstarPathFinder::getHeu(GridNodePtr node1, GridNodePtr node2)
     */
 
     /* Manhattan */
-    //return (node1->coord - node2->coord).lpNorm<1>();
+    return (node1->coord - node2->coord).lpNorm<1>();
 
     /* Euclidean */
 
@@ -200,7 +201,7 @@ double AstarPathFinder::getHeu(GridNodePtr node1, GridNodePtr node2)
 
     /* Diagonal */
 
-    return (node1->coord - node2->coord).lpNorm<1>() + (sqrt(2)- 2) * (node1->coord - node2->coord).minCoeff();
+    //return (node1->coord - node2->coord).lpNorm<1>() + (sqrt(2)- 2) * (node1->coord - node2->coord).minCoeff();
 
     /* Dijkstra */
 
@@ -308,6 +309,7 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
                 neighborPtr->gScore = gScore;
                 neighborPtr->fScore = fScore;
                 neighborPtr->id = 1;
+                neighborPtr->cameFrom = currentPtr;
                 openSet.insert(make_pair(neighborPtr->fScore, neighborPtr));
             }
             else if(neighborPtr -> id == 1){ //this node is in open set and need to judge if it needs to update, the "0" should be deleted when you are coding
@@ -330,16 +332,11 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
                 auto neighbor_to_neighbor = openSet.equal_range(neighborPtr->fScore);
 
                 for (auto it = neighbor_to_neighbor.first; it != neighbor_to_neighbor.second; ++it) {
-                    if(
-                        (
-                            (it->second->index(0) == neighborPtr->index(0)) &&
-                            (it->second->index(1) == neighborPtr->index(1)) &&
-                            (it->second->index(2) == neighborPtr->index(2))
-                        ) && (gScore < neighborPtr->gScore)
-                    ) {
+                    if((it->second->index == neighborPtr->index) && (gScore < neighborPtr->gScore)) {
                         openSet.erase(it);
                         neighborPtr->gScore = gScore;
                         neighborPtr->fScore = fScore;
+                        neighborPtr->cameFrom = currentPtr;
                         openSet.insert(make_pair(neighborPtr->fScore, neighborPtr));
                         break;
                     }
@@ -351,7 +348,6 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
                 please write your code below
                 *        
                 */
-                continue;
             }
         }    
     }
@@ -380,8 +376,10 @@ vector<Vector3d> AstarPathFinder::getPath()
         currentPtr = currentPtr->cameFrom;
     }
 
-    for (auto ptr: gridPath)
+    for (auto ptr: gridPath){
         path.push_back(ptr->coord);
+    }
+        
         
     reverse(path.begin(),path.end());
 

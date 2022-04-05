@@ -283,6 +283,21 @@ namespace path_plan
         // ! Implement your own code inside the following loop
         for (auto &curr_node : neighbour_nodes)
         {
+          if (!map_ptr_->isSegmentValid(curr_node->x, x_new)) {
+            continue;
+          }
+
+          double dist2nearest_tmp = calDist(curr_node->x, x_new);
+          double min_dist_from_start_tmp(curr_node->cost_from_start + dist2nearest_tmp);
+          double cost_from_p_tmp(dist2nearest_tmp);
+
+          if (min_dist_from_start > min_dist_from_start_tmp) {
+            dist2nearest = dist2nearest_tmp;
+            min_dist_from_start = min_dist_from_start_tmp;
+            cost_from_p = cost_from_p_tmp;
+            min_node = curr_node;
+          }
+
         }
         // ! Implement your own code inside the above loop
 
@@ -329,10 +344,34 @@ namespace path_plan
         {
           double best_cost_before_rewire = goal_node_->cost_from_start;
           // ! -------------------------------------
+          if (!map_ptr_->isSegmentValid(curr_node->x, new_node->x)) {
+            continue;
+          }
+
+          double new_to_curr = calDist(new_node->x,curr_node->x);
+
+          if (curr_node->cost_from_start < new_node->cost_from_start + new_to_curr) {
+            continue;
+          }
+          changeNodeParent(curr_node, new_node, new_to_curr);
+
+          if (!map_ptr_->isSegmentValid(goal_node_->x, curr_node->x)) {
+            continue;
+          }
+
+          double curr_to_goal = calDist(goal_node_->x, curr_node->x);
+          double best_cost_after_rewire = curr_node->cost_from_start + curr_to_goal;
 
           // ! -------------------------------------
-          if (best_cost_before_rewire > goal_node_->cost_from_start)
+          if (best_cost_before_rewire > best_cost_after_rewire)
           {
+            if (!goal_found)
+            {
+              first_path_use_time_ = (ros::Time::now() - rrt_start_time).toSec();
+            }
+            goal_found = true;
+            changeNodeParent(goal_node_, curr_node, curr_to_goal);
+
             vector<Eigen::Vector3d> curr_best_path;
             fillPath(goal_node_, curr_best_path);
             path_list_.emplace_back(curr_best_path);

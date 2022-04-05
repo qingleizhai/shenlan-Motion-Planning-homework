@@ -29,34 +29,72 @@ plot(x_G, y_G, 'go', 'MarkerSize',10, 'MarkerFaceColor','g');% 绘制起点和�
 count=1;
 bFind = false;
 
+goal = [x_G; y_G];
+
 for iter = 1:3000
-    x_rand=[];
+    x_rand=[randi([1,xL],1); randi([1,yL],1)];
     %Step 1: 在地图中随机采样一个点x_rand
     %提示：用（x_rand(1),x_rand(2)）表示环境中采样点的坐标
     
-    x_near=[];
+    %x_near=[];
     %Step 2: 遍历树，从树中找到最近邻近点x_near 
     %提示：x_near已经在树T里
+    min_distance = 10000;
+    for i=1:count
+        distance = sqrt( ( T.v(i).x - x_rand(1) )^2 + ( T.v(i).y - x_rand(2) )^2 );
+        if distance < min_distance
+            min_distance = distance;
+            index = i;
+        end
+    end
+    x_near=[
+        T.v(index).x;
+        T.v(index).y
+    ];
     
-    x_new=[];
+    
+    %x_new=[];
     %Step 3: 扩展得到x_new节点
     %提示：注意使用扩展步长Delta
     
+    
+    direction = (x_rand - x_near);
+    direction = direction / norm(direction);
+    
+    x_new = x_near + Delta * direction;
+    
     %检查节点是否是collision-free
-    %if ~collisionChecking(x_near,x_new,Imp) 
-    %    continue;
-    %end
+    if ~collisionChecking(x_near,x_new,Imp) 
+        continue;
+    end
     count=count+1;
     
     %Step 4: 将x_new插入树T 
     %提示：新节点x_new的父节点是x_near
     
+    T.v(count).x = x_new(1);
+    T.v(count).y = x_new(2); 
+    T.v(count).xPrev = x_near(1);
+    T.v(count).yPrev = x_near(2);
+    T.v(count).dist = Delta;
+    T.v(count).indPrev = index;
+    
     %Step 5:检查是否到达目标点附近 
     %提示：注意使用目标点阈值Thr，若当前节点和终点的欧式距离小于Thr，则跳出当前for循环
+    
+    if norm(x_new - goal) < Thr
+        bFind = true;
+        break;
+    end
     
     %Step 6:将x_near和x_new之间的路径画出来
     %提示 1：使用plot绘制，因为要多次在同一张图上绘制线段，所以每次使用plot后需要接上hold on命令
     %提示 2：在判断终点条件弹出for循环前，记得把x_near和x_new之间的路径画出来
+    
+    
+    hold on;
+    plot(x_new(1), x_new(2), 'bo', 'MarkerSize',2, 'MarkerFaceColor','b'); % 绘制x_new
+    line( [x_new(1) x_near(1)], [x_new(2) x_near(2)], 'Marker','.','LineStyle','-'); %连接x_near和x_new
    
     pause(0.05); %暂停一会，使得RRT扩展过程容易观察
 end

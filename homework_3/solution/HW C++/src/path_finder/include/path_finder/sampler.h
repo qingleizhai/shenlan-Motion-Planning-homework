@@ -98,16 +98,14 @@ public:
   Eigen::Vector3d samplingUnitNBall()
   {
     Eigen::Vector3d sample;
-    while (true)
-    {
-      sample[0] = (2 * (uniform_rand_(gen_) - 1) * 1);
-      sample[1] = (2 * (uniform_rand_(gen_) - 1) * 1);
-      sample[2] = (2 * (uniform_rand_(gen_) - 1) * 1);
-
-      if (sample[0] * sample[0] + sample[1] * sample[1] + sample[2] * sample[2]< 1) {
-        return sample;
-      }
-    }
+    
+    sample[0] = normal_rand_(gen_);
+    sample[1] = normal_rand_(gen_);
+    sample[2] = normal_rand_(gen_);
+    double r = pow(uniform_rand_(gen_), 0.33333);
+    
+    return r * sample.normalized();
+    
   }
 
   // (0.0 - 1.0)

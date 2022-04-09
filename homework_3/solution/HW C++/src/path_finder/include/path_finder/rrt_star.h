@@ -80,7 +80,6 @@ namespace path_plan
       goal_node_->x = g;
       goal_node_->cost_from_start = DBL_MAX; // important
       valid_tree_node_nums_ = 2;             // put start and goal in tree
-
       ROS_INFO("[RRT*]: RRT starts planning a path");
       return rrt_star(s, g);
     }
@@ -225,8 +224,15 @@ namespace path_plan
       {
         /* biased random sampling */
         Eigen::Vector3d x_rand;
-        sampler_.samplingOnce(x_rand);
-        // samplingOnce(x_rand);
+        //sampler_.samplingOnce(x_rand);
+        //samplingOnce(x_rand);
+
+        if (goal_node_->cost_from_start < DBL_MAX) {
+          sampler_.samplingOnceInEllipse(x_rand, goal_node_->cost_from_start, start_node_->x, goal_node_->x);
+        } else {
+          sampler_.samplingOnce(x_rand);
+        }
+
         if (!map_ptr_->isStateValid(x_rand))
         {
           continue;

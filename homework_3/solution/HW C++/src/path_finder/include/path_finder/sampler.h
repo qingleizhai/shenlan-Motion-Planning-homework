@@ -53,6 +53,64 @@ public:
     sample += origin_;
   };
 
+  void samplingOnceInEllipse(Eigen::Vector3d &sample, double c_max, const Eigen::Vector3d &s, const Eigen::Vector3d &g)
+  {
+
+    Eigen::Vector3d x_center = (s + g) / 2;
+
+    double c_min = (s - g).norm();
+
+    Eigen::Matrix3d L;
+    calcDiagMatrix(L, c_max, c_min);
+    sample = L*samplingUnitNBall();
+
+    
+    Eigen::Matrix3d C;
+    calcRotationToWorldFrame(C, s, g);
+
+    Eigen::Vector3d sample1 = C * sample;
+
+    sample = sample1 + x_center ;
+  }
+
+  void calcDiagMatrix(Eigen::Matrix3d & diag, double c_best, double c_min)
+  {
+    diag.setZero();
+    diag << c_best / 2, 0, 0,
+            0,sqrt(c_best * c_best - c_min * c_min) / 2.0 ,0,
+            0, 0, sqrt(c_best * c_best - c_min * c_min) / 2.0;
+  }
+
+  void calcRotationToWorldFrame(Eigen::Matrix3d & C, const Eigen::Vector3d &s, const Eigen::Vector3d &g)
+  {
+    auto dir = (g - s).normalized();
+
+    double alpha = std::atan2(dir(1), dir(0));
+    Eigen::AngleAxisd rotation_vector_z (alpha, Eigen::Vector3d(0,0,1));
+
+    C = Eigen::Matrix3d::Identity();
+    C = rotation_vector_z.matrix();
+
+    //double beta = std::atan()
+
+
+  }
+
+  Eigen::Vector3d samplingUnitNBall()
+  {
+    Eigen::Vector3d sample;
+    while (true)
+    {
+      sample[0] = (2 * (uniform_rand_(gen_) - 1) * 1);
+      sample[1] = (2 * (uniform_rand_(gen_) - 1) * 1);
+      sample[2] = (2 * (uniform_rand_(gen_) - 1) * 1);
+
+      if (sample[0] * sample[0] + sample[1] * sample[1] + sample[2] * sample[2]< 1) {
+        return sample;
+      }
+    }
+  }
+
   // (0.0 - 1.0)
   double getUniRandNum()
   {

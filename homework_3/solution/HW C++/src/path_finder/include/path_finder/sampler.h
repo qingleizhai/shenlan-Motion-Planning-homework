@@ -85,11 +85,10 @@ public:
   {
     auto dir = (g - s).normalized();
 
-    double alpha = std::atan2(dir(1), dir(0));
-    Eigen::AngleAxisd rotation_vector_z (alpha, Eigen::Vector3d(0,0,1));
-
-    C = Eigen::Matrix3d::Identity();
-    C = rotation_vector_z.matrix();
+    C.col(0) = dir;
+    dir[2] = 0.0;
+    C.col(1) = Eigen::AngleAxisd(0.5 * M_PI, Eigen::Vector3d::UnitZ()) * dir.normalized(); // project to the x-y plane and then rotate 90 degree;
+    C.col(2) = C.col(0).cross(C.col(1));
 
     //double beta = std::atan()
 

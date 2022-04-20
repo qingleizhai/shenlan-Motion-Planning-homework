@@ -82,60 +82,88 @@ void minimumJerkTrajGen(
 
     // ------------------------ Put your solution below ------------------------
 
-    Eigen::MatrixXd M = Eigen::MatrixXd::Zero(6 * pieceNum, 6);
-
-
+    Eigen::MatrixXd M = Eigen::MatrixXd::Zero(6 * pieceNum, 6 * pieceNum);
     Eigen::MatrixX3d B = Eigen::MatrixXd::Zero(6 * pieceNum, 3);
-    for (int i = 0; i < pieceNum; i++) {
-        if (0 == i) {
-            M.block<6, 6>(6 * i, 0) << 1, 0, 0, 0, 0, 0,
-                                       0, 1, 0, 0, 0, 0,
-                                       0, 0, 2, 0, 0, 0,
-                                       1, timeAllocationVector(pieceNum-1), std::pow(timeAllocationVector(pieceNum-1),2), std::pow(timeAllocationVector(pieceNum-1),3), std::pow(timeAllocationVector(pieceNum-1),4), std::pow(timeAllocationVector(pieceNum-1),5),
-                                       0, 1, 2 * timeAllocationVector(pieceNum-1), 3 * std::pow(timeAllocationVector(pieceNum-1),2), 4 * std::pow(timeAllocationVector(pieceNum-1),3), 5 * std::pow(timeAllocationVector(pieceNum-1),4),
-                                       0, 0, 2, 6 * timeAllocationVector(pieceNum-1), 12 * std::pow(timeAllocationVector(pieceNum-1),2), 20 * std::pow(timeAllocationVector(pieceNum-1),3);
-            continue;
-        }
-        M.block<6, 6>(6 * i, 0) << 1, 0, 0, 0, 0, 0,
-                                   1, timeAllocationVector(i-1), std::pow(timeAllocationVector(i-1),2), std::pow(timeAllocationVector(i-1),3), std::pow(timeAllocationVector(i-1),4), std::pow(timeAllocationVector(i-1),5),
-                                   0, 1, 2 * timeAllocationVector(i-1), 3 * std::pow(timeAllocationVector(i-1),2), 4 * std::pow(timeAllocationVector(i-1),3), 5 * std::pow(timeAllocationVector(i-1),4),
-                                   0, 0, 2, 6 * timeAllocationVector(i-1), 12 * std::pow(timeAllocationVector(i-1),2), 20 * std::pow(timeAllocationVector(i-1),3), 
-                                   0, 0, 0, 6, 24 * timeAllocationVector(i-1), 60 * std::pow(timeAllocationVector(i-1),2),
-                                   0, 0, 0, 0, 24, 120 * timeAllocationVector(i-1);
+
+    // initial p,v,a constraint
+    M(0, 0) = 1.0;
+    M(1, 1) = 1.0;
+    M(2, 2) = 2.0;
+    B.row(0) = initialPos.transpose();
+    B.row(1) = initialVel.transpose();
+    B.row(2) = initialAcc.transpose();
+
+
+    for (int i = 0; i < pieceNum - 1; i++) {
+        
+        B.row(6 * i + 3) = intermediatePositions.col(i).transpose();
+
+        // position constaint  
+        M(6 * i + 3, 6 * i) = 1.0;
+        M(6 * i + 3, 6 * i + 1) = timeAllocationVector(i);
+        M(6 * i + 3, 6 * i + 2) = std::pow(timeAllocationVector(i), 2);
+        M(6 * i + 3, 6 * i + 3) = std::pow(timeAllocationVector(i), 3);
+        M(6 * i + 3, 6 * i + 4) = std::pow(timeAllocationVector(i), 4);
+        M(6 * i + 3, 6 * i + 5) = std::pow(timeAllocationVector(i), 5);
+
+        // position continuity constraint
+        M(6 * i + 4, 6 * i) = 1.0;
+        M(6 * i + 4, 6 * i + 1) = timeAllocationVector(i);
+        M(6 * i + 4, 6 * i + 2) = std::pow(timeAllocationVector(i), 2);
+        M(6 * i + 4, 6 * i + 3) = std::pow(timeAllocationVector(i), 3);
+        M(6 * i + 4, 6 * i + 4) = std::pow(timeAllocationVector(i), 4);
+        M(6 * i + 4, 6 * i + 5) = std::pow(timeAllocationVector(i), 5);
+        M(6 * i + 4, 6 * i + 6) = -1.0;
+
+        // velocity continuity constraint
+        M(6 * i + 5, 6 * i + 1) = 1.0;
+        M(6 * i + 5, 6 * i + 2) = 2 * timeAllocationVector(i);
+        M(6 * i + 5, 6 * i + 3) = 3 * std::pow(timeAllocationVector(i), 2);
+        M(6 * i + 5, 6 * i + 4) = 4 * std::pow(timeAllocationVector(i), 3);
+        M(6 * i + 5, 6 * i + 5) = 5 * std::pow(timeAllocationVector(i), 4);
+        M(6 * i + 5, 6 * i + 7) = -1.0;
+
+        // acceleration continuity constraint
+        M(6 * i + 6, 6 * i + 2) = 2.0;
+        M(6 * i + 6, 6 * i + 3) = 6 * timeAllocationVector(i);
+        M(6 * i + 6, 6 * i + 4) = 12 * std::pow(timeAllocationVector(i), 2);
+        M(6 * i + 6, 6 * i + 5) = 20 * std::pow(timeAllocationVector(i), 3);
+        M(6 * i + 6, 6 * i + 8) = -2.0;
+
+         // jerk continuity constraint
+        M(6 * i + 7, 6 * i + 3) = 6.0;
+        M(6 * i + 7, 6 * i + 4) = 24.0 * timeAllocationVector(i);
+        M(6 * i + 7, 6 * i + 5) = 60.0 * std::pow(timeAllocationVector(i), 2);
+        M(6 * i + 7, 6 * i + 9) = -6.0;
+
+        // snap continuity constraint
+        M(6 * i + 8, 6 * i + 4) = 24.0;
+        M(6 * i + 8, 6 * i + 5) = 120.0 * timeAllocationVector(i);
+        M(6 * i + 8, 6 * i + 10) = -24.0;
     }
 
-    for (int i = 0; i < pieceNum; i++) {
-        if (0 == i) {
-            B.block<6, 3>(6 * i, 0) << initialPos(0), initialPos(1), initialPos(2), 
-                                       initialVel(0), initialVel(1), initialVel(2),
-                                       initialAcc(0), initialAcc(1), initialAcc(2), 
-                                       terminalPos(0), terminalPos(1), terminalPos(2), 
-                                       terminalVel(0), terminalVel(1), terminalVel(2), 
-                                       terminalAcc(0), terminalAcc(1), terminalAcc(2);
-            continue;
-        }
-        if (1 == i) {
-            B.block<6, 3>(6 * i, 0) << initialPos(0), initialPos(1), initialPos(2),
-                                       intermediatePositions(0, i-1), intermediatePositions(1, i-1), intermediatePositions(2, i-1),
-                                       0, 0, 0,
-                                       0, 0, 0,
-                                       0, 0, 0,
-                                       0, 0, 0;
-            continue;
-        }
-        B.block<6, 3>(6 * i, 0) << intermediatePositions(0, i-2), intermediatePositions(1, i-2), intermediatePositions(2, i-2),
-                                   intermediatePositions(0, i-1), intermediatePositions(1, i-1), intermediatePositions(2, i-1),
-                                   0, 0, 0,
-                                   0, 0, 0,
-                                   0, 0, 0,
-                                   0, 0, 0;
-    }
+    M(6 * pieceNum - 3, 6 * pieceNum - 6) = 1.0;
+    M(6 * pieceNum - 3, 6 * pieceNum - 5) = timeAllocationVector(pieceNum - 1);
+    M(6 * pieceNum - 3, 6 * pieceNum - 4) = std::pow(timeAllocationVector(pieceNum - 1), 2);
+    M(6 * pieceNum - 3, 6 * pieceNum - 3) = std::pow(timeAllocationVector(pieceNum - 1), 3);
+    M(6 * pieceNum - 3, 6 * pieceNum - 2) = std::pow(timeAllocationVector(pieceNum - 1), 4);
+    M(6 * pieceNum - 3, 6 * pieceNum - 1) = std::pow(timeAllocationVector(pieceNum - 1), 5);
+    M(6 * pieceNum - 2, 6 * pieceNum - 5) = 1.0;
+    M(6 * pieceNum - 2, 6 * pieceNum - 4) = 2 * timeAllocationVector(pieceNum - 1);
+    M(6 * pieceNum - 2, 6 * pieceNum - 3) = 3 * std::pow(timeAllocationVector(pieceNum - 1), 2);
+    M(6 * pieceNum - 2, 6 * pieceNum - 2) = 4 * std::pow(timeAllocationVector(pieceNum - 1), 3);
+    M(6 * pieceNum - 2, 6 * pieceNum - 1) = 5 * std::pow(timeAllocationVector(pieceNum - 1), 4);
+    M(6 * pieceNum - 1, 6 * pieceNum - 4) = 2;
+    M(6 * pieceNum - 1, 6 * pieceNum - 3) = 6 * timeAllocationVector(pieceNum - 1);
+    M(6 * pieceNum - 1, 6 * pieceNum - 2) = 12 * std::pow(timeAllocationVector(pieceNum - 1), 2);
+    M(6 * pieceNum - 1, 6 * pieceNum - 1) = 20 * std::pow(timeAllocationVector(pieceNum - 1), 3);
 
-    for (int i = 0; i < pieceNum; i++) {
-        coefficientMatrix.block<6, 3>(6 * i, 0)  =  M.block<6, 6>(6 * i, 0).inverse() * B.block<6, 3>(6 * i, 0);
-    }
+    B.row(6 * pieceNum - 3) = terminalPos.transpose();
+    B.row(6 * pieceNum - 2) = terminalVel.transpose();
+    B.row(6 * pieceNum - 1) = terminalAcc.transpose();
 
-   
+    
+    coefficientMatrix =  M.inverse() * B;
     // ------------------------ Put your solution above ------------------------
 }
 

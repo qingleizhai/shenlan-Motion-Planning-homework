@@ -19,7 +19,7 @@ min  J = \sum_{i=0}^N (x-x_r)^2+ (y-y_r)^2 + rho * (phi-phi_r)^2
 s.t. -0.1 <= v_k <= v_max
      |a_k| <= a_max
      |delta_k| <= delta_max
-     |delta_{k+1} - delta_k| <= ddelta_max
+     |delta_{k+1} - delta_k| / dt <= ddelta_max
 ```
 
 ## Homework2

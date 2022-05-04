@@ -42,20 +42,40 @@ class MpcCar {
   int history_length_;
   VectorX x0_observe_;
 
+  // x_{k+1} = Ad * x_{k} + Bd * u_k + gd
   MatrixA Ad_;
   MatrixB Bd_;
   VectorG gd_;
-  // x_{k+1} = Ad * x_{k} + Bd * u_k + gd
 
+  /**
+   * osqp interface:
+   * minimize     0.5 x^T P_ x + q_^T x
+   * subject to   l_ <= A_ x <= u_
+   **/
   Eigen::SparseMatrix<double> P_, q_, A_, l_, u_;
-  // Eigen::SparseMatrix<double> P0_, q0_;
+
+  /* *
+   *               /  x1  \
+   *               |  x2  |
+   *  lx_ <=  Cx_  |  x3  |  <= ux_
+   *               | ...  |
+   *               \  xN  /
+   * */
   Eigen::SparseMatrix<double> Cx_, lx_, ux_;  // p, v constrains
+  /* *
+   *               /  u0  \
+   *               |  u1  |
+   *  lu_ <=  Cu_  |  u2  |  <= uu_
+   *               | ...  |
+   *               \ uN-1 /
+   * */
   Eigen::SparseMatrix<double> Cu_, lu_, uu_;  // a delta vs constrains
   Eigen::SparseMatrix<double> Qx_;
 
   void linearization(const double& phi,
                      const double& v,
                      const double& delta) {
+    // x_{k+1} = Ad * x_{k} + Bd * u_k + gd
     // TODO: set values to Ad_, Bd_, gd_
     // ...
     return;
@@ -92,7 +112,7 @@ class MpcCar {
     // Runge–Kutta
     VectorX k1 = diff(state, input);
     VectorX k2 = diff(state + k1 * dt / 2, input);
-    VectorX k3 = diff(state + k1 * dt / 2, input);
+    VectorX k3 = diff(state + k2 * dt / 2, input);
     VectorX k4 = diff(state + k3 * dt, input);
     state = state + (k1 + k2 * 2 + k3 * 2 + k4) * dt / 6;
   }
@@ -228,7 +248,17 @@ class MpcCar {
         // ...
       }
       // TODO: set qx
-      Eigen::Vector2d xy = s_(s0); // reference (x_r, y_r)
+      Eigen::Vector2d xy = s_(s0);  // reference (x_r, y_r)
+
+      // cost function should be represented as follows:
+      /* *
+       *           /  x1  \T       /  x1  \         /  x1  \
+       *           |  x2  |        |  x2  |         |  x2  |
+       *  J =  0.5 |  x3  |   Qx_  |  x3  | + qx^T  |  x3  | + const.
+       *           | ...  |        | ...  |         | ...  |
+       *           \  xN  /        \  xN  /         \  xN  /
+       * */
+
       // qx.coeffRef(...
       // ...
       s0 += desired_v_ * dt_;
@@ -239,9 +269,22 @@ class MpcCar {
     Eigen::SparseMatrix<double> gg_sparse = gg.sparseView();
     Eigen::SparseMatrix<double> x0_sparse = x0.sparseView();
 
+    // state constrants propogate to input constraints using "X = BB * U + AA * x0 + gg"
+    /* *
+     *               /  x1  \                              /  u0  \
+     *               |  x2  |                              |  u1  |
+     *  lx_ <=  Cx_  |  x3  |  <= ux_    ==>    lx <=  Cx  |  u2  |  <= ux
+     *               | ...  |                              | ...  |
+     *               \  xN  /                              \ uN-1 /
+     * */
     Eigen::SparseMatrix<double> Cx = Cx_ * BB_sparse;
     Eigen::SparseMatrix<double> lx = lx_ - Cx_ * AA_sparse * x0_sparse - Cx_ * gg_sparse;
     Eigen::SparseMatrix<double> ux = ux_ - Cx_ * AA_sparse * x0_sparse - Cx_ * gg_sparse;
+
+    /* *      / Cx  \       / lx  \       / ux  \
+     *   A_ = \ Cu_ /, l_ = \ lu_ /, u_ = \ uu_ /
+     * */
+
     Eigen::SparseMatrix<double> A_T = A_.transpose();
     A_T.middleCols(0, Cx.rows()) = Cx.transpose();
     A_T.middleCols(Cx.rows(), Cu_.rows()) = Cu_.transpose();
